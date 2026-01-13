@@ -3,6 +3,31 @@
 **Fast-Planner** is developed aiming to enable quadrotor fast flight in complex unknown environments. It contains a rich set of carefully designed planning algorithms. It also provides a foundational code framework and algorithms that support several popular open-source drone projects, including [ego-planner](https://github.com/ZJU-FAST-Lab/ego-planner),
 [FUEL](https://github.com/HKUST-Aerial-Robotics/FUEL) and [RACER](https://github.com/SYSU-STAR/RACER), etc.
 
+---
+
+## 🚀 SO(3) Controller Integration (Quick Start)
+
+This repository includes a **working SO(3) geometric controller integration** for immediate use:
+
+```bash
+# Quick launch (single command)
+./launch_so3.sh
+
+# Then use "2D Nav Goal" in RViz to set target positions!
+```
+
+**Features:**
+- ✅ Autonomous obstacle avoidance
+- ✅ Dynamic replanning
+- ✅ Physics-based simulation with SO(3) controller
+- ✅ No Gazebo required (lightweight simulator)
+
+**Documentation:**
+- [`SO3_SETUP.md`](SO3_SETUP.md) - Complete SO(3) system guide
+- [`CLAUDE.md`](CLAUDE.md) - Development guide for AI assistants
+
+---
+
 **News**: 
 
 - __Mar 13, 2021__: Code for fast autonomous exploration is available now! Check this [repo](https://github.com/HKUST-Aerial-Robotics/FUEL) for more details.

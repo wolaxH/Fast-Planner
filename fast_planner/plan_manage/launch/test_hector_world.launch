@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Test launch file to verify Gazebo world and Hector URDF -->
+
+  <arg name="world" default="$(find plan_manage)/worlds/fast_planner_obstacles.world"/>
+  <arg name="paused" default="false"/>
+  <arg name="use_sim_time" default="true"/>
+  <arg name="gui" default="true"/>
+  <arg name="headless" default="false"/>
+  <arg name="debug" default="false"/>
+
+  <!-- Launch Gazebo with custom world -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(arg world)"/>
+    <arg name="paused" value="$(arg paused)"/>
+    <arg name="use_sim_time" value="$(arg use_sim_time)"/>
+    <arg name="gui" value="$(arg gui)"/>
+    <arg name="headless" value="$(arg headless)"/>
+    <arg name="debug" value="$(arg debug)"/>
+  </include>
+
+  <!-- Load robot description with depth camera -->
+  <param name="robot_description" command="$(find xacro)/xacro '$(find plan_manage)/urdf/hector_with_depth.urdf.xacro'"/>
+
+  <!-- Spawn Hector at starting position -->
+  <node name="spawn_quadrotor" pkg="gazebo_ros" type="spawn_model"
+        args="-urdf -param robot_description -model quadrotor
+              -x -19.0 -y 0.0 -z 1.0"
+        respawn="false" output="screen"/>
+
+  <!-- Robot state publisher -->
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
+
+  <!-- Joint state publisher -->
+  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher"/>
+
+  <!-- Info message -->
+  <node name="info" pkg="rostopic" type="rostopic"
+        args="echo /ground_truth/state -n 1"
+        output="screen" launch-prefix="bash -c 'sleep 5; rosrun rostopic rostopic'"/>
+
+</launch>

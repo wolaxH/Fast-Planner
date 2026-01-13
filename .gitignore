@@ -1,3 +1,131 @@
-fast_planner/.vscode
+# ============================================
+# ROS / Catkin Build Files
+# ============================================
+build/
+devel/
+install/
+.catkin_workspace
+.catkin_tools/
+
+# CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+*.cmake
+Makefile
+
+# Compiled Object files
+*.o
+*.so
+*.a
+*.lo
+*.la
+*.lai
+*.slo
+
+# Executables
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
+
+# ============================================
+# IDE and Editor Files
+# ============================================
 .vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-*
 .clang-format
+.clangd/
+compile_commands.json
+
+# ============================================
+# Log and Debug Files
+# ============================================
+*.log
+*.txt
+!CMakeLists.txt
+!CLAUDE.md
+!README.md
+!SO3_SETUP.md
+
+# ROS logs
+log/
+*.bag
+*.bag.active
+
+# ============================================
+# Temporary and Test Files
+# ============================================
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+.#*
+\#*\#
+
+# Test scripts and temp images
+test_*.sh
+check_*.sh
+diagnose_*.sh
+manual_*.sh
+send_*.sh
+*.png
+*.jpg
+*.jpeg
+!docs/*.png
+!docs/*.jpg
+
+# Debug files
+frames.gv
+frames.pdf
+*.dae.bak
+
+# ============================================
+# Build Artifacts
+# ============================================
+*.autosave
+moc_*.cpp
+*.moc
+ui_*.h
+qrc_*.cpp
+
+# ============================================
+# System Files
+# ============================================
+.catkin_workspace
+src/CMakeLists.txt
+
+# ============================================
+# Project Specific
+# ============================================
+# Hector workspace (if using external hector)
+hector_ws/
+
+# User-specific launch scripts (keep only the main one)
+launch_system.sh
+launch_log*.txt
+
+# Compiled message/service files
+*_generated.py
+*.msg.lst
+*.srv.lst
+
+# ============================================
+# Documentation (Optional - uncomment if needed)
+# ============================================
+# docs/_build/
+# *.pdf
