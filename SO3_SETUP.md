@@ -1,224 +1,195 @@
-# SO(3) 控制器整合 - 完整指南
+# Fast-Planner 模擬系統指南
 
-## 🎯 為什麼切換到 SO(3)？
-
-### Hector 控制器的問題 ❌
-- 設計用於手動遙控和簡單航點導航
-- 無法追蹤 Fast-Planner 的快速動態軌跡
-- 碰撞後控制失效，導致翻倒
-- 參數調整困難，成功率低
-
-### SO(3) 控制器的優勢 ✅
-- **專為 Fast-Planner 設計**
-- **幾何控制**：基於 SO(3) 流形的姿態控制
-- **高性能軌跡追蹤**：準確追蹤快速動態軌跡
-- **穩定性好**：即使在激進飛行中也能保持穩定
-- **真實物理模擬**：力和力矩施加在模擬器上
+本專案提供兩種模擬環境：**Hector Quadrotor + Gazebo** 和 **SO(3) 輕量模擬**。
 
 ---
 
-## 📁 系統架構
+## 🎯 系統比較
 
-### 數據流
+| 特性 | Hector + Gazebo | SO(3) 輕量模擬 |
+|------|-----------------|---------------|
+| 視覺效果 | ✅ 完整 3D 渲染 | ⚠️ 點雲視覺化 |
+| 啟動速度 | ⚠️ 較慢 (Gazebo) | ✅ 快速 |
+| 物理模擬 | ✅ Gazebo 物理引擎 | ✅ 簡化動力學 |
+| 深度相機 | ✅ Kinect 模擬 | ✅ 點雲生成 |
+| 避障效果 | ✅ 優秀 | ✅ 優秀 |
+| 適用場景 | 展示、測試 | 快速開發、除錯 |
+
+---
+
+## 🚁 Option 1: Hector Quadrotor + Gazebo（推薦）
+
+### 啟動方式
+
+```bash
+# 設置環境
+source /opt/ros/noetic/setup.bash
+source ~/Fast-Planner/hector_ws/devel/setup.bash --extend
+source ~/Fast-Planner/devel/setup.bash --extend
+
+# 啟動系統
+roslaunch plan_manage hector_fast_planner.launch
+```
+
+### 系統架構
 
 ```
-Fast-Planner (規劃器)
-    ↓ quadrotor_msgs/PositionCommand
-SO(3) Controller (幾何控制器)
-    ↓ quadrotor_msgs/SO3Command (力 + 姿態四元數)
-SO(3) Quadrotor Simulator (動力學模擬)
-    ↓ nav_msgs/Odometry
+Gazebo World (障礙物)
+    ↓ Kinect 深度圖像
+SDFMap (ESDF 建圖, pose_type=3)
+    ↓ 佔據地圖 + 距離場
+Fast-Planner (Kinodynamic A* + B-spline)
+    ↓ 軌跡
+Trajectory Server
+    ↓ 位置/速度命令
+Hector Command Bridge
+    ↓ /cmd_vel
+Hector Quadrotor Controller
+    ↓
+Gazebo 物理模擬
+    ↓ /ground_truth/state
 Fast-Planner (狀態反饋)
 ```
 
-### 主要組件
+### 關鍵配置參數
 
-1. **so3_quadrotor_simulator** - 四旋翼動力學模擬器
-   - 模擬真實四旋翼物理
-   - 接收力和姿態指令
-   - 輸出里程計和 IMU
+文件: `fast_planner/plan_manage/launch/kino_algorithm_hector.xml`
 
-2. **so3_control** - SO(3) 幾何控制器
-   - 接收 `PositionCommand` from Fast-Planner
-   - 計算所需力和姿態
-   - 發布 `SO3Command`
+| 參數 | 值 | 說明 |
+|------|-----|------|
+| `sdf_map/pose_type` | 3 | DEPTH_ODOM_INDEP 模式 |
+| `sdf_map/obstacles_inflation` | 0.3 | 障礙物膨脹距離 |
+| `optimization/dist0` | 0.8 | 安全距離閾值 |
+| `optimization/lambda2` | 30.0 | 距離代價權重 |
+| `manager/max_vel` | 1.0 | 最大速度 (m/s) |
 
-3. **local_sensing** - 深度相機模擬
-   - 模擬深度相機感知
-   - 從 random map 生成點雲和深度圖
+### 技術細節
 
-4. **map_generator** - 隨機障礙物地圖
-   - 生成隨機圓柱體障礙物
-   - 替代 Gazebo 世界
+1. **pose_type=3 (DEPTH_ODOM_INDEP)**
+   - 深度圖和里程計獨立訂閱
+   - 避免 message_filters 時間戳同步問題
+   - Hector 的深度圖和里程計時間戳不同步
+
+2. **相機座標系轉換**
+   - Kinect 光學座標系: Z 前, X 右, Y 下
+   - 無人機座標系: X 前, Y 左, Z 上
+   - 需要旋轉矩陣轉換
+
+3. **Hector Command Bridge**
+   - 將 Fast-Planner 位置命令轉換為速度命令
+   - 使用 `/cmd_vel` 控制 Hector
 
 ---
 
-## 🚀 使用方法
+## 🎮 Option 2: SO(3) 輕量模擬
 
-### 啟動系統
+### 啟動方式
 
 ```bash
-cd /home/etho/Fast-Planner
-./launch_so3.sh
+cd ~/Fast-Planner
+source devel/setup.bash
+roslaunch plan_manage kino_replan.launch
 ```
 
-### 操作步驟
+### 系統架構
 
-1. **等待啟動**（約 5-10 秒）
-   - RViz 打開
-   - 看到障礙物地圖點雲
-   - 無人機在起始位置
-
-2. **設置目標**
-   - 在 RViz 中選擇 "2D Nav Goal" 工具
-   - 點擊目標位置
-   - 無人機會自動規劃並飛行
-
-3. **觀察**
-   - 綠色軌跡：規劃路徑
-   - 藍色點雲：ESDF 地圖
-   - 紅色標記：障礙物
-
----
-
-## ⚙️ 配置文件
-
-### SO(3) 控制器增益
-
-文件: `/home/etho/Fast-Planner/uav_simulator/so3_control/config/gains.yaml`
-
-```yaml
-gains:
-  pos: {x: 5.0, y: 5.0, z: 15.0}   # 位置增益
-  vel: {x: 5.0, y: 5.0, z: 5.0}    # 速度增益
-  rot: {x: 3.5, y: 3.5, z: 1.0}    # 姿態增益
-  ang: {x: 0.4, y: 0.4, z: 0.1}    # 角速度增益
+```
+Random Map Generator (隨機障礙物)
+    ↓ 全局點雲
+Local Sensing (深度相機模擬)
+    ↓ 局部點雲/深度圖
+SDFMap (ESDF 建圖)
+    ↓
+Fast-Planner
+    ↓ PositionCommand
+SO(3) Controller (幾何控制器)
+    ↓ SO3Command (力 + 姿態)
+SO(3) Quadrotor Simulator
+    ↓ Odometry
+Fast-Planner (狀態反饋)
 ```
 
-### Fast-Planner 參數
+### 優勢
 
-在 `fast_planner_so3_pure.launch`:
-
-- `max_vel`: 2.5 m/s（可調整）
-- `max_acc`: 2.5 m/s²（可調整）
-- 障礙物數量: 100個
-- 地圖大小: 40x20x5m
+- **專為 Fast-Planner 設計**
+- **高性能軌跡追蹤**
+- **快速啟動**（無 Gazebo 開銷）
+- **穩定控制**
 
 ---
 
 ## 🔧 調整建議
 
+### 如果避障效果不佳
+
+增加安全距離和代價權重：
+```xml
+<!-- kino_algorithm_hector.xml -->
+<param name="sdf_map/obstacles_inflation" value="0.4"/>
+<param name="optimization/dist0" value="1.0"/>
+<param name="optimization/lambda2" value="50.0"/>
+```
+
 ### 如果飛行太慢
 
-增加速度和加速度：
+增加速度限制：
 ```xml
-<arg name="max_vel" default="3.0"/>
-<arg name="max_acc" default="3.0"/>
+<!-- hector_fast_planner.launch -->
+<arg name="max_vel" default="1.5"/>
+<arg name="max_acc" default="1.5"/>
 ```
 
 ### 如果控制不穩定
 
-降低 SO(3) 增益：
-```yaml
-gains:
-  pos: {x: 4.0, y: 4.0, z: 12.0}
-  vel: {x: 4.0, y: 4.0, z: 4.0}
-```
-
-### 如果避障太保守
-
-降低安全距離（在 `kino_algorithm_hector.xml`）:
+降低速度增益：
 ```xml
-<param name="sdf_map/obstacles_inflation" value="0.15"/>
-<param name="manager/clearance_threshold" value="0.2"/>
+<!-- hector_fast_planner.launch 中的 hector_cmd_bridge -->
+<param name="position_gain" value="0.8"/>
+<param name="velocity_gain" value="0.8"/>
 ```
-
----
-
-## 📊 與 Hector 方案的對比
-
-| 特性 | Hector 方案 | SO(3) 方案 |
-|------|------------|-----------|
-| 軌跡追蹤 | ❌ 差 | ✅ 優秀 |
-| 避障效果 | ❌ 失敗 | ✅ 成功 |
-| 穩定性 | ❌ 碰撞後翻倒 | ✅ 穩定 |
-| 視覺效果 | ✅ Gazebo 3D | ⚠️ 簡化（點雲） |
-| 配置難度 | ❌ 困難 | ✅ 簡單 |
-| 成功率 | ~0% | ~95% |
-
----
-
-## 🎮 RViz 設置
-
-launch 文件使用 `kino.rviz` 配置，包含：
-
-- **Global Cloud** - 全局障礙物地圖（灰色點雲）
-- **Depth Cloud** - 深度相機點雲
-- **Occupancy Map** - 佔據地圖
-- **ESDF** - 距離場
-- **Trajectory** - 規劃軌跡
-- **TF Axes** - 無人機座標軸（紅藍綠三色，顯示無人機位置和姿態）
-
-**注意**：SO(3) 純模擬不使用 Gazebo，所以**沒有 3D 無人機模型**。
-無人機位置會顯示為**座標軸**（RGB = XYZ）。
-
-### 如何在 RViz 中顯示無人機座標軸
-
-1. 在 RViz 左側面板點擊 **"Add"**
-2. 選擇 **"TF"**
-3. 展開 TF 設定
-4. 啟用 **"Show Axes"**
-5. 設定 **Axes Length: 0.5** （座標軸長度）
-6. 你應該會看到 `world` → `body` 的轉換
 
 ---
 
 ## 🐛 常見問題
 
 ### 問：無人機不動
-**答**：檢查是否收到 position_cmd
+**答**：檢查軌跡是否發布
 ```bash
-rostopic echo /planning/pos_cmd
+rostopic echo /planning/bspline
 ```
 
-### 問：無人機飛走了
-**答**：初始位置可能不對，檢查 `init_x/y/z` 參數
+### 問：路徑穿過障礙物
+**答**：檢查 ESDF 是否正確建立
+```bash
+rostopic echo /sdf_map/occupancy -n 1
+```
 
-### 問：沒有障礙物
-**答**：等待 random_forest 節點生成地圖（約 3-5 秒）
+### 問：深度圖無數據
+**答**：檢查 Kinect topic
+```bash
+rostopic hz /camera/depth/image_raw
+```
 
-### 問：想要更多/更少障礙物
-**答**：調整 launch 文件中的 `obs_num` 參數
+### 問：無人機飛出邊界後崩潰
+**答**：系統已加入邊界檢查，應自動跳過處理
 
-### 問：RViz 中看不到無人機
-**答**：SO(3) 系統沒有 3D 模型，需要手動添加 TF 顯示：
-1. 點擊 RViz 的 **Add** 按鈕
-2. 選擇 **TF**
-3. 啟用 **Show Axes** 顯示座標軸
-4. 你會看到紅藍綠三色座標軸代表無人機
+### 問：RViz 中看不到軌跡
+**答**：確認已添加 MarkerArray 顯示 `/planning/data_display`
 
 ---
 
-## 📝 下一步
+## 📊 ROS Topics
 
-**Phase 2 完成** ✅
+### Hector 系統
 
-現在你有一個**完全可用的自主避障系統**：
-- Fast-Planner 規劃避障路徑
-- SO(3) 控制器精確追蹤軌跡
-- 真實物理模擬
-
-**可以展示的功能**：
-1. 自主避障飛行
-2. 動態重規劃
-3. 快速軌跡追蹤
-4. 複雜環境導航
-
-**未來改進**（可選）：
-1. 添加 Gazebo 視覺化（需要 Gazebo plugin）
-2. 多無人機協同
-3. 動態障礙物
-4. 真實硬體測試
+| Topic | 類型 | 說明 |
+|-------|------|------|
+| `/ground_truth/state` | nav_msgs/Odometry | 無人機里程計 |
+| `/camera/depth/image_raw` | sensor_msgs/Image | Kinect 深度圖 |
+| `/camera/depth/points` | sensor_msgs/PointCloud2 | Kinect 點雲 |
+| `/cmd_vel` | geometry_msgs/Twist | 速度控制命令 |
+| `/move_base_simple/goal` | geometry_msgs/PoseStamped | RViz 目標點 |
+| `/planning/bspline` | plan_manage/Bspline | 規劃軌跡 |
 
 ---
 
@@ -226,4 +197,5 @@ rostopic echo /planning/pos_cmd
 
 - [Fast-Planner 論文](https://arxiv.org/abs/1904.05293)
 - [SO(3) 控制論文](https://ieeexplore.ieee.org/document/5717652)
+- [Hector Quadrotor Wiki](http://wiki.ros.org/hector_quadrotor)
 - [原始 Fast-Planner GitHub](https://github.com/HKUST-Aerial-Robotics/Fast-Planner)

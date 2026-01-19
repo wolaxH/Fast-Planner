@@ -1,6 +1,6 @@
 # Fast-Planner Project Structure
 
-This document describes the organization of the Fast-Planner codebase with SO(3) controller integration.
+This document describes the organization of the Fast-Planner codebase with Hector Quadrotor + Gazebo integration.
 
 ## 📁 Root Directory
 
@@ -8,15 +8,12 @@ This document describes the organization of the Fast-Planner codebase with SO(3)
 Fast-Planner/
 ├── README.md              # Main project documentation
 ├── CLAUDE.md              # AI assistant development guide
-├── SO3_SETUP.md           # SO(3) system setup and usage
 ├── PROJECT_STRUCTURE.md   # This file
 ├── .gitignore             # Git ignore rules
-├── launch_so3.sh          # Main launch script for SO(3) system
-├── setup_workspace.sh     # Workspace setup script
 ├── fast_planner/          # Core Fast-Planner modules
-├── uav_simulator/         # UAV simulation components
+├── uav_simulator/         # UAV simulation components (SO(3) system)
+├── hector_ws/             # Hector Quadrotor workspace
 └── src/                   # ROS workspace source link
-
 ```
 
 ## 🎯 Core Modules
@@ -32,19 +29,37 @@ fast_planner/
 ├── bspline_opt/          # Back-end trajectory optimization
 ├── plan_manage/          # High-level planning FSM and coordination
 │   ├── launch/           # Launch files
-│   │   ├── fast_planner_so3_pure.launch  # Main SO(3) system launch
-│   │   ├── kino_algorithm_hector.xml     # Planning parameters
-│   │   └── rviz.launch                    # Visualization
+│   │   ├── hector_fast_planner.launch    # Main Hector+Gazebo launch
+│   │   ├── kino_algorithm_hector.xml     # Planning parameters for Hector
+│   │   ├── kino_replan.launch            # SO(3) lightweight simulation
+│   │   └── rviz.launch                   # Visualization
+│   ├── src/              # Source files
+│   │   ├── hector_cmd_bridge.cpp         # Fast-Planner → Hector velocity bridge
+│   │   └── traj_server.cpp               # Trajectory execution server
 │   ├── scripts/          # Helper scripts
-│   │   └── odom_to_tf.py                  # TF broadcaster for RViz
-│   └── urdf/             # Robot models
-│       └── hector_with_depth.urdf.xacro   # Quadrotor with depth camera
+│   │   └── odom_to_tf.py                 # TF broadcaster for RViz
+│   └── worlds/           # Gazebo world files
+│       └── fast_planner_obstacles.world  # Obstacle environment
 ├── traj_utils/           # Trajectory utilities
 └── poly_traj/            # Polynomial trajectory representation
 ```
 
+### hector_ws/
+Hector Quadrotor simulation workspace for Gazebo integration.
+
+```
+hector_ws/
+└── src/
+    ├── hector_quadrotor/          # Quadrotor simulation and control
+    │   ├── hector_quadrotor_gazebo/       # Gazebo spawn launch files
+    │   ├── hector_quadrotor_description/  # URDF models
+    │   └── hector_quadrotor_controllers/  # Flight controllers
+    └── hector_models/
+        └── hector_sensors_description/    # Kinect camera URDF
+```
+
 ### uav_simulator/
-Quadrotor simulation and control components.
+Lightweight quadrotor simulation (SO(3) system, no Gazebo).
 
 ```
 uav_simulator/
@@ -56,119 +71,130 @@ uav_simulator/
     └── waypoint_generator/    # Converts RViz goals to waypoints
 ```
 
-## 🚀 Launch System
+## 🚀 Launch Systems
 
-### Main Entry Point
-**`launch_so3.sh`** - Single-command launch script
+### Option 1: Hector Quadrotor + Gazebo (Recommended)
 
-Starts:
-1. Random obstacle map generator
-2. SO(3) quadrotor simulator
-3. SO(3) geometric controller
-4. Depth camera simulation
-5. Fast-Planner with kinodynamic replanning
-6. RViz visualization
+**Launch Command:**
+```bash
+source /opt/ros/noetic/setup.bash
+source ~/Fast-Planner/hector_ws/devel/setup.bash --extend
+source ~/Fast-Planner/devel/setup.bash --extend
+roslaunch plan_manage hector_fast_planner.launch
+```
 
-### Configuration Files
+**Features:**
+- Full 3D visualization in Gazebo
+- Realistic Kinect depth camera
+- Hector Quadrotor physics
+- Obstacle world environment
+
+### Option 2: SO(3) Lightweight Simulation
+
+**Launch Command:**
+```bash
+source ~/Fast-Planner/devel/setup.bash
+roslaunch plan_manage kino_replan.launch
+```
+
+**Features:**
+- Faster startup (no Gazebo)
+- Random obstacle generation
+- SO(3) geometric controller
+- Point cloud visualization
+
+## ⚙️ Configuration Files
 
 | File | Purpose |
 |------|---------|
-| `kino_algorithm_hector.xml` | Planning parameters (speed, safety, ESDF) |
-| `gains.yaml` (so3_control) | Controller gains |
-| `camera.yaml` (local_sensing) | Camera parameters |
+| `kino_algorithm_hector.xml` | Planning parameters for Hector (ESDF, optimization) |
+| `hector_fast_planner.launch` | Main Hector system launch |
 | `kino.rviz` | RViz visualization config |
+| `fast_planner_obstacles.world` | Gazebo obstacle world |
 
-## 📊 Data Flow
+### Key Parameters (kino_algorithm_hector.xml)
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| `sdf_map/pose_type` | 3 | DEPTH_ODOM_INDEP mode (no timestamp sync) |
+| `sdf_map/obstacles_inflation` | 0.3 | Obstacle safety margin |
+| `optimization/dist0` | 0.8 | Safe distance threshold |
+| `optimization/lambda2` | 30.0 | Distance cost weight |
+| `manager/max_vel` | 1.0 | Maximum velocity (m/s) |
+
+## 📊 Data Flow (Hector System)
 
 ```
-Random Map Generator
-  → Local Sensing (Depth Camera Simulation)
-  → ESDF Map Builder
-  → Fast-Planner (Kinodynamic A* + B-spline Optimization)
+Gazebo World (Obstacles)
+  → Kinect Camera (Depth Image)
+  → SDFMap (ESDF Building, pose_type=3)
+  → Fast-Planner (Kinodynamic A* + B-spline)
   → Trajectory Server
-  → SO(3) Controller
-  → SO(3) Quadrotor Simulator
-  → Odometry feedback →  (loop)
+  → Hector Command Bridge (/cmd_vel)
+  → Hector Quadrotor Controller
+  → Gazebo Physics
+  → Odometry feedback → (loop)
 ```
 
 ### ROS Topics
 
 **Input:**
 - `/move_base_simple/goal` - RViz 2D Nav Goal
-- `/visual_slam/odom` - Quadrotor odometry
-- `/camera/depth/points` - Depth point cloud
+- `/ground_truth/state` - Hector odometry
+- `/camera/depth/image_raw` - Kinect depth image
+- `/camera/depth/points` - Kinect point cloud
 
 **Output:**
-- `/planning/pos_cmd` - Position commands to SO(3) controller
-- `/so3_cmd` - SO(3) control commands
+- `/cmd_vel` - Velocity commands to Hector
 - `/planning/bspline` - Planned trajectory
 - `/sdf_map/occupancy` - ESDF occupancy map
 
 ## 🛠️ Build System
 
 ```bash
-# Build entire workspace
+# Build Hector workspace first
+cd ~/Fast-Planner/hector_ws
+catkin_make
+
+# Build Fast-Planner
+cd ~/Fast-Planner
 catkin_make
 
 # Build specific package
 catkin_make --pkg plan_manage
-
-# Clean build
-catkin_make clean && catkin_make
 ```
 
-### Build Artifacts (Ignored by Git)
-- `build/` - CMake build files
-- `devel/` - Built executables and libraries
-- `.catkin_workspace` - Catkin workspace marker
+## 🔧 Key Components for Hector Integration
 
-## 📚 Documentation
-
-| Document | Purpose | Audience |
-|----------|---------|----------|
-| `README.md` | Project overview and original Fast-Planner docs | General users |
-| `SO3_SETUP.md` | SO(3) system setup, usage, and troubleshooting | New users |
-| `CLAUDE.md` | Development guide, architecture, parameters | Developers, AI assistants |
-| `PROJECT_STRUCTURE.md` | Code organization and structure | Developers |
-
-## 🔧 Key Components Added for SO(3) Integration
-
-1. **`odom_to_tf.py`** - Broadcasts TF transforms for RViz visualization
-2. **`fast_planner_so3_pure.launch`** - Complete SO(3) system launch file
-3. **Modified waypoint_generator** - Set to `manual-lonely-waypoint` mode
-4. **Trajectory server** - Bridges Fast-Planner and SO(3) controller
+1. **`hector_cmd_bridge.cpp`** - Converts Fast-Planner position commands to Hector velocity commands
+2. **`pose_type=3` (DEPTH_ODOM_INDEP)** - Independent depth/odom subscribers to avoid timestamp sync issues
+3. **Camera frame transform** - Converts Kinect optical frame to world frame
+4. **Map boundary check** - Prevents crashes when UAV flies outside map bounds
 
 ## 🎮 Usage Workflow
 
-1. Launch system: `./launch_so3.sh`
-2. Wait for initialization (5-10 seconds)
+1. Launch system: `roslaunch plan_manage hector_fast_planner.launch`
+2. Wait for Gazebo and RViz to initialize
 3. In RViz, select "2D Nav Goal" tool
-4. Click target position
+4. Click target position (keep z ≈ 1.0m)
 5. Watch autonomous obstacle avoidance!
 
 ## 📝 Development Notes
 
 - **Planning Algorithm**: Kinodynamic A* (front-end) + B-spline optimization (back-end)
-- **Controller**: SO(3) geometric tracking controller
-- **Perception**: ESDF-based obstacle representation
-- **Simulation**: Lightweight (no Gazebo), physics-based quadrotor dynamics
-- **Frame IDs**: `world` (global), `body` (quadrotor)
-
-## 🚫 Ignored Files (.gitignore)
-
-- Build artifacts (`build/`, `devel/`)
-- IDE files (`.vscode/`, `.idea/`)
-- Logs (`*.log`, `*.txt` except docs)
-- Temporary files (`*.tmp`, `*.bak`)
-- Test scripts (`test_*.sh`, `check_*.sh`)
-- Images (`*.png`, `*.jpg` except in docs/)
+- **Controller**: Hector velocity control via `/cmd_vel`
+- **Perception**: ESDF-based obstacle representation from Kinect depth
+- **Simulation**: Gazebo with Hector Quadrotor physics
+- **Frame IDs**: `world` (global), `base_link` (quadrotor)
 
 ## 🔗 External Dependencies
 
-- ROS Noetic (or Melodic)
+- ROS Noetic
+- Gazebo 11
 - Eigen3
 - PCL (Point Cloud Library)
 - NLopt (v2.7.1)
 - Armadillo
+- Hector Quadrotor packages
 
 See `CLAUDE.md` for installation instructions.
