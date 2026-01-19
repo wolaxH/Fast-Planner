@@ -12,7 +12,9 @@ find_package(PCL 1.7 REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
+  std_srvs
   geometry_msgs
+  nav_msgs
   quadrotor_msgs
   plan_env
   path_searching
@@ -21,6 +23,9 @@ find_package(catkin REQUIRED COMPONENTS
   traj_utils
   message_generation
   cv_bridge
+  tf2
+  tf2_geometry_msgs
+  hector_uav_msgs
 )
 
 # Generate messages in the 'msg' folder
@@ -66,5 +71,9 @@ target_link_libraries(fast_planner_node
 add_executable(traj_server src/traj_server.cpp)
 target_link_libraries(traj_server ${catkin_LIBRARIES})
 add_dependencies(traj_server ${${PROJECT_NAME}_EXPORTED_TARGETS})
+
+add_executable(hector_cmd_bridge src/hector_cmd_bridge.cpp)
+target_link_libraries(hector_cmd_bridge ${catkin_LIBRARIES})
+add_dependencies(hector_cmd_bridge ${${PROJECT_NAME}_EXPORTED_TARGETS})
 
 

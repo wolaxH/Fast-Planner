@@ -1,92 +1,65 @@
+<?xml version="1.0"?>
 <launch>
-  <!--
-    Fast-Planner + Hector Quadrotor Integration Launch File
-    This launches the complete system with Gazebo, Hector, Fast-Planner, and control bridge
-  -->
-
-  <!-- Map parameters -->
-  <arg name="map_size_x" default="40.0"/>
-  <arg name="map_size_y" default="20.0"/>
+  <!-- ========== Arguments ========== -->
+  <arg name="map_size_x" default="40.0"/>  <!-- 增大地圖範圍 [-20, 20] -->
+  <arg name="map_size_y" default="40.0"/>  <!-- 增大地圖範圍 [-20, 20] -->
   <arg name="map_size_z" default="5.0"/>
 
-  <!-- Gazebo world and URDF -->
-  <arg name="world_file" default="$(find plan_manage)/worlds/fast_planner_obstacles.world"/>
-  <arg name="urdf_file" default="$(find plan_manage)/urdf/hector_with_depth.urdf.xacro"/>
+  <!-- Initial position -->
+  <arg name="init_x" default="0.0"/>
+  <arg name="init_y" default="0.0"/>
+  <arg name="init_z" default="1.0"/>  <!-- 起飛高度，需要高於障礙物膨脹範圍 -->
 
-  <!-- Hector spawn position -->
-  <arg name="x" default="-19.0"/>
-  <arg name="y" default="0.0"/>
-  <arg name="z" default="1.0"/>
+  <!-- Dynamic limits (conservative for Hector) -->
+  <arg name="max_vel" default="1.0"/>
+  <arg name="max_acc" default="1.0"/>
 
-  <!-- Camera intrinsics (matching URDF - 90-degree FOV) -->
+  <!-- Hector Kinect camera intrinsics (from URDF: 60 degree FOV, 640x480) -->
+  <!-- fx = fy = width / (2 * tan(fov/2)) = 640 / (2 * tan(30)) = 554.26 -->
   <arg name="cx" default="320.0"/>
   <arg name="cy" default="240.0"/>
-  <arg name="fx" default="320.0"/>
-  <arg name="fy" default="320.0"/>
+  <arg name="fx" default="554.26"/>
+  <arg name="fy" default="554.26"/>
 
-  <!-- Flight type: 1 = 2D Nav Goal, 2 = waypoints -->
+  <!-- Flight mode: 1=2D Nav Goal, 2=Waypoints -->
   <arg name="flight_type" default="1"/>
 
-  <!-- ==================== 1. Launch Gazebo ==================== -->
+  <!-- Waypoints (if flight_type=2) -->
+  <arg name="point_num" default="1"/>
+  <arg name="point0_x" default="5.0"/>
+  <arg name="point0_y" default="0.0"/>
+  <arg name="point0_z" default="1.0"/>
+  <arg name="point1_x" default="0.0"/>
+  <arg name="point1_y" default="0.0"/>
+  <arg name="point1_z" default="1.0"/>
+  <arg name="point2_x" default="0.0"/>
+  <arg name="point2_y" default="0.0"/>
+  <arg name="point2_z" default="1.0"/>
+
+  <!-- ========== 1. Gazebo World ========== -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
-    <arg name="world_name" value="$(arg world_file)"/>
+    <arg name="world_name" value="$(find plan_manage)/worlds/fast_planner_obstacles.world"/>
     <arg name="paused" value="false"/>
-    <arg name="use_sim_time" value="true"/>
     <arg name="gui" value="true"/>
-    <arg name="headless" value="false"/>
-    <arg name="debug" value="false"/>
   </include>
 
-  <!-- ==================== 2. Spawn Hector ==================== -->
-  <!-- Load robot description -->
-  <param name="robot_description" command="$(find xacro)/xacro $(arg urdf_file)"/>
+  <!-- ========== 2. Hector Quadrotor with Kinect ========== -->
+  <include file="$(find hector_quadrotor_gazebo)/launch/spawn_quadrotor_with_kinect.launch">
+    <arg name="x" value="$(arg init_x)"/>
+    <arg name="y" value="$(arg init_y)"/>
+    <arg name="z" value="$(arg init_z)"/>
+    <arg name="use_ground_truth_for_tf" value="true"/>
+    <arg name="use_ground_truth_for_control" value="true"/>
+  </include>
 
-  <!-- Spawn quadrotor -->
-  <node name="spawn_quadrotor" pkg="gazebo_ros" type="spawn_model" output="screen"
-        args="-urdf -model quadrotor -param robot_description -x $(arg x) -y $(arg y) -z $(arg z)"/>
-
-  <!-- Robot state publishers -->
-  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
-  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher"/>
-
-  <!-- TF broadcaster: convert odometry to TF (world -> base_link) -->
-  <node pkg="fast_planner_bridge" type="odom_to_tf_node" name="odom_to_tf" output="screen">
-    <param name="odom_topic" value="/ground_truth/state"/>
-    <param name="world_frame" value="world"/>
-    <param name="base_frame" value="base_link"/>
-  </node>
-
-  <!-- ==================== 3. Hector Position Controller & Bridge ==================== -->
-  <!-- Load Hector controllers -->
-  <rosparam ns="controller" file="$(find hector_quadrotor_controllers)/params/controller.yaml" />
-  <rosparam file="$(find hector_quadrotor_controllers)/params/params.yaml" />
-
-  <!-- Spawn controllers -->
-  <node name="controller_spawner" pkg="controller_manager" type="spawner"
-        respawn="false" output="screen"
-        args="controller/attitude controller/velocity controller/position --shutdown-timeout 3" />
-
-  <!-- Fast-Planner to Hector position command bridge -->
-  <node pkg="fast_planner_bridge" type="hector_position_bridge_node"
-        name="hector_position_bridge" output="screen">
-    <param name="command_timeout" value="0.5"/>
-  </node>
-
-  <!-- Auto-enable motors on startup -->
-  <node pkg="fast_planner_bridge" type="enable_motors.sh"
-        name="enable_motors" output="screen"
-        launch-prefix="bash -c 'sleep 3; $0 $@'" />
-
-  <!-- ==================== 4. Fast-Planner Algorithm ==================== -->
+  <!-- ========== 3. Fast-Planner Algorithm ========== -->
   <include file="$(find plan_manage)/launch/kino_algorithm_hector.xml">
-    <!-- Map size -->
     <arg name="map_size_x_" value="$(arg map_size_x)"/>
     <arg name="map_size_y_" value="$(arg map_size_y)"/>
     <arg name="map_size_z_" value="$(arg map_size_z)"/>
 
-    <!-- Topics from Hector/Gazebo -->
+    <!-- Hector topics (pose_type=2 uses odometry topic for depth callback) -->
     <arg name="odometry_topic" value="/ground_truth/state"/>
-    <arg name="camera_pose_topic" value="/ground_truth/state"/>
     <arg name="depth_topic" value="/camera/depth/image_raw"/>
     <arg name="cloud_topic" value="/camera/depth/points"/>
 
@@ -96,43 +69,46 @@
     <arg name="fx" value="$(arg fx)"/>
     <arg name="fy" value="$(arg fy)"/>
 
-    <!-- Conservative dynamics for Hector - balanced for obstacle avoidance -->
-    <arg name="max_vel" value="1.5"/>
-    <arg name="max_acc" value="1.2"/>
+    <!-- Dynamic limits -->
+    <arg name="max_vel" value="$(arg max_vel)"/>
+    <arg name="max_acc" value="$(arg max_acc)"/>
 
-    <!-- Flight type -->
+    <!-- Flight configuration -->
     <arg name="flight_type" value="$(arg flight_type)"/>
-
-    <!-- Waypoints (if flight_type == 2) -->
-    <arg name="point_num" value="2"/>
-    <arg name="point0_x" value="19.0"/>
-    <arg name="point0_y" value="0.0"/>
-    <arg name="point0_z" value="1.0"/>
-    <arg name="point1_x" value="-19.0"/>
-    <arg name="point1_y" value="0.0"/>
-    <arg name="point1_z" value="1.0"/>
-    <arg name="point2_x" value="0.0"/>
-    <arg name="point2_y" value="0.0"/>
-    <arg name="point2_z" value="1.0"/>
+    <arg name="point_num" value="$(arg point_num)"/>
+    <arg name="point0_x" value="$(arg point0_x)"/>
+    <arg name="point0_y" value="$(arg point0_y)"/>
+    <arg name="point0_z" value="$(arg point0_z)"/>
+    <arg name="point1_x" value="$(arg point1_x)"/>
+    <arg name="point1_y" value="$(arg point1_y)"/>
+    <arg name="point1_z" value="$(arg point1_z)"/>
+    <arg name="point2_x" value="$(arg point2_x)"/>
+    <arg name="point2_y" value="$(arg point2_y)"/>
+    <arg name="point2_z" value="$(arg point2_z)"/>
   </include>
 
-  <!-- ==================== 5. Trajectory Server ==================== -->
-  <node pkg="plan_manage" name="traj_server" type="traj_server" output="screen">
-    <remap from="/position_cmd" to="/planning/pos_cmd"/>
-    <remap from="/odom_world" to="/ground_truth/state"/>
-    <param name="traj_server/time_forward" value="1.5" type="double"/>
-  </node>
-
-  <!-- ==================== 6. Waypoint Generator ==================== -->
+  <!-- ========== 4. Waypoint Generator (converts RViz 2D Nav Goal) ========== -->
   <node pkg="waypoint_generator" name="waypoint_generator" type="waypoint_generator" output="screen">
     <remap from="~odom" to="/ground_truth/state"/>
     <remap from="~goal" to="/move_base_simple/goal"/>
-    <remap from="~traj_start_trigger" to="/traj_start_trigger"/>
     <param name="waypoint_type" value="manual-lonely-waypoint"/>
   </node>
 
-  <!-- ==================== 7. RViz Visualization ==================== -->
-  <node type="rviz" name="rviz" pkg="rviz" output="screen"
-        args="-d $(find plan_manage)/config/hector_fast_planner.rviz"/>
+  <!-- ========== 5. Trajectory Server ========== -->
+  <node pkg="plan_manage" name="traj_server" type="traj_server" output="screen"/>
 
+  <!-- ========== 6. Command Bridge (Fast-Planner -> Hector) ========== -->
+  <!-- 使用速度控制模式，精確跟蹤軌跡 -->
+  <node pkg="plan_manage" name="hector_cmd_bridge" type="hector_cmd_bridge" output="screen">
+    <param name="max_linear_vel" value="$(arg max_vel)"/>
+    <param name="max_angular_vel" value="1.5"/>
+    <param name="position_gain" value="1.0"/>   <!-- Kp: 位置誤差增益 -->
+    <param name="velocity_gain" value="1.0"/>   <!-- Kv: 速度前饋增益 (提高以更好跟蹤軌跡) -->
+  </node>
+
+  <!-- Note: Hector already publishes TF via ground_truth_to_tf -->
+
+  <!-- ========== 7. RViz ========== -->
+  <node type="rviz" name="rviz" pkg="rviz"
+        args="-d $(find plan_manage)/config/kino.rviz" output="screen"/>
 </launch>

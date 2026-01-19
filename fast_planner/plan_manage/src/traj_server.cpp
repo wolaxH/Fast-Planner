@@ -201,8 +201,34 @@ void visCallback(const ros::TimerEvent& e) {
 }
 
 void cmdCallback(const ros::TimerEvent& e) {
-  /* no publishing before receive traj_ */
-  if (!receive_traj_) return;
+  /* Publish hover command if no trajectory received yet */
+  if (!receive_traj_) {
+    if (odom.header.stamp.toSec() > 0) {
+      // Send hover command at current position
+      quadrotor_msgs::PositionCommand cmd;
+      cmd.header.stamp = ros::Time::now();
+      cmd.header.frame_id = "world";
+      cmd.trajectory_flag = 0;
+
+      cmd.position.x = odom.pose.pose.position.x;
+      cmd.position.y = odom.pose.pose.position.y;
+      cmd.position.z = odom.pose.pose.position.z;
+
+      cmd.velocity.x = 0.0;
+      cmd.velocity.y = 0.0;
+      cmd.velocity.z = 0.0;
+
+      cmd.acceleration.x = 0.0;
+      cmd.acceleration.y = 0.0;
+      cmd.acceleration.z = 0.0;
+
+      cmd.yaw = last_yaw_;
+      cmd.yaw_dot = 0.0;
+
+      pos_cmd_pub.publish(cmd);
+    }
+    return;
+  }
 
   ros::Time time_now = ros::Time::now();
   double t_cur = (time_now - start_time_).toSec();
@@ -251,16 +277,17 @@ void cmdCallback(const ros::TimerEvent& e) {
   cmd.acceleration.y = acc(1);
   cmd.acceleration.z = acc(2);
 
-  cmd.yaw = yaw;
-  cmd.yaw_dot = yawdot;
-
+  // Use trajectory yaw if valid, otherwise point towards motion direction
   auto pos_err = pos_f - pos;
-  // if (pos_err.norm() > 1e-3) {
-  //   cmd.yaw = atan2(pos_err(1), pos_err(0));
-  // } else {
-  //   cmd.yaw = last_yaw_;
-  // }
-  // cmd.yaw_dot = 1.0;
+  if (pos_err.norm() > 0.1) {
+    // Point yaw towards motion direction
+    cmd.yaw = atan2(pos_err(1), pos_err(0));
+    cmd.yaw_dot = 0.0;  // Let SO3 controller handle yaw rate
+  } else {
+    // Use trajectory yaw when not moving
+    cmd.yaw = yaw;
+    cmd.yaw_dot = yawdot;
+  }
 
   last_yaw_ = cmd.yaw;
 

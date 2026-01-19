@@ -169,7 +169,7 @@ public:
   SDFMap() {}
   ~SDFMap() {}
 
-  enum { POSE_STAMPED = 1, ODOMETRY = 2, INVALID_IDX = -10000 };
+  enum { POSE_STAMPED = 1, ODOMETRY = 2, DEPTH_ODOM_INDEP = 3, INVALID_IDX = -10000 };
 
   // occupancy map management
   void resetBuffer();
@@ -243,6 +243,9 @@ private:
   void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& img);
   void poseCallback(const geometry_msgs::PoseStampedConstPtr& pose);
   void odomCallback(const nav_msgs::OdometryConstPtr& odom);
+  // 獨立訂閱模式的回調
+  void depthIndepCallback(const sensor_msgs::ImageConstPtr& img);
+  void odomIndepCallback(const nav_msgs::OdometryConstPtr& odom);
 
   // update occupancy by raycasting, and update ESDF
   void updateOccupancyCallback(const ros::TimerEvent& /*event*/);

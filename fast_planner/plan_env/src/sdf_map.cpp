@@ -144,14 +144,22 @@ void SDFMap::initMap(ros::NodeHandle& nh) {
     sync_image_odom_.reset(new message_filters::Synchronizer<SyncPolicyImageOdom>(
         SyncPolicyImageOdom(100), *depth_sub_, *odom_sub_));
     sync_image_odom_->registerCallback(boost::bind(&SDFMap::depthOdomCallback, this, _1, _2));
+  } else if (mp_.pose_type_ == DEPTH_ODOM_INDEP) {
+    // 獨立訂閱模式：分別訂閱深度圖像和 odometry，避免時間戳同步問題
+    ROS_INFO("[SDFMap] Using DEPTH_ODOM_INDEP mode (no time sync required)");
+    indep_depth_sub_ = node_.subscribe<sensor_msgs::Image>("/sdf_map/depth", 10,
+                                                            &SDFMap::depthIndepCallback, this);
+    indep_odom_sub_ = node_.subscribe<nav_msgs::Odometry>("/sdf_map/odom", 50,
+                                                          &SDFMap::odomIndepCallback, this);
   }
 
-  // use odometry and point cloud
-
-  indep_cloud_sub_ =
-      node_.subscribe<sensor_msgs::PointCloud2>("/sdf_map/cloud", 10, &SDFMap::cloudCallback, this);
-  indep_odom_sub_ =
-      node_.subscribe<nav_msgs::Odometry>("/sdf_map/odom", 10, &SDFMap::odomCallback, this);
+  // use odometry and point cloud (只在非 DEPTH_ODOM_INDEP 模式下啟用)
+  if (mp_.pose_type_ != DEPTH_ODOM_INDEP) {
+    indep_cloud_sub_ =
+        node_.subscribe<sensor_msgs::PointCloud2>("/sdf_map/cloud", 10, &SDFMap::cloudCallback, this);
+    indep_odom_sub_ =
+        node_.subscribe<nav_msgs::Odometry>("/sdf_map/odom", 10, &SDFMap::odomCallback, this);
+  }
 
   occ_timer_ = node_.createTimer(ros::Duration(0.05), &SDFMap::updateOccupancyCallback, this);
   esdf_timer_ = node_.createTimer(ros::Duration(0.05), &SDFMap::updateESDFCallback, this);
@@ -379,7 +387,19 @@ void SDFMap::projectDepthImage() {
 
   double depth;
 
-  Eigen::Matrix3d camera_r = md_.camera_q_.toRotationMatrix();
+  // 相機光學坐標系到無人機坐標系的旋轉 (rpy = -π/2, 0, -π/2)
+  // optical frame: Z forward, X right, Y down
+  // body frame: X forward, Y left, Z up
+  Eigen::Matrix3d R_body_to_optical;
+  R_body_to_optical << 0, -1, 0,
+                       0, 0, -1,
+                       1, 0, 0;
+
+  // 無人機在世界坐標系中的旋轉
+  Eigen::Matrix3d R_world_to_body = md_.camera_q_.toRotationMatrix();
+
+  // 相機光學坐標系到世界坐標系的完整旋轉
+  Eigen::Matrix3d camera_r = R_world_to_body * R_body_to_optical.transpose();
 
   // cout << "rotate: " << md_.camera_q_.toRotationMatrix() << endl;
   // std::cout << "pos in proj: " << md_.camera_pos_ << std::endl;
@@ -774,6 +794,9 @@ void SDFMap::visCallback(const ros::TimerEvent& /*event*/) {
 
 void SDFMap::updateOccupancyCallback(const ros::TimerEvent& /*event*/) {
   if (!md_.occ_need_update_) return;
+
+  // DEBUG: 確認佔用更新被觸發
+  ROS_INFO_THROTTLE(2.0, "[SDFMap] updateOccupancy triggered! proj_points=%d", md_.proj_points_cnt);
 
   /* update occupancy */
   ros::Time t1, t2;
@@ -1284,6 +1307,11 @@ void SDFMap::getSurroundPts(const Eigen::Vector3d& pos, Eigen::Vector3d pts[2][2
 
 void SDFMap::depthOdomCallback(const sensor_msgs::ImageConstPtr& img,
                                const nav_msgs::OdometryConstPtr& odom) {
+  // DEBUG: 確認回調被觸發
+  ROS_INFO_THROTTLE(2.0, "[SDFMap] depthOdomCallback triggered! img=%dx%d encoding=%s pos=(%.2f,%.2f,%.2f)",
+    img->width, img->height, img->encoding.c_str(),
+    odom->pose.pose.position.x, odom->pose.pose.position.y, odom->pose.pose.position.z);
+
   /* get pose */
   md_.camera_pos_(0) = odom->pose.pose.position.x;
   md_.camera_pos_(1) = odom->pose.pose.position.y;
@@ -1312,6 +1340,46 @@ void SDFMap::poseCallback(const geometry_msgs::PoseStampedConstPtr& pose) {
   md_.camera_pos_(0) = pose->pose.position.x;
   md_.camera_pos_(1) = pose->pose.position.y;
   md_.camera_pos_(2) = pose->pose.position.z;
+}
+
+// 獨立訂閱模式：Odometry 回調（持續更新位姿）
+void SDFMap::odomIndepCallback(const nav_msgs::OdometryConstPtr& odom) {
+  md_.camera_pos_(0) = odom->pose.pose.position.x;
+  md_.camera_pos_(1) = odom->pose.pose.position.y;
+  md_.camera_pos_(2) = odom->pose.pose.position.z;
+  md_.camera_q_ = Eigen::Quaterniond(odom->pose.pose.orientation.w, odom->pose.pose.orientation.x,
+                                     odom->pose.pose.orientation.y, odom->pose.pose.orientation.z);
+  md_.has_odom_ = true;
+}
+
+// 獨立訂閱模式：深度圖像回調（使用最新的 odom 數據）
+void SDFMap::depthIndepCallback(const sensor_msgs::ImageConstPtr& img) {
+  if (!md_.has_odom_) {
+    ROS_WARN_THROTTLE(1.0, "[SDFMap] depthIndepCallback: No odom data yet");
+    return;
+  }
+
+  // 檢查相機位置是否在地圖範圍內（防止越界崩潰）
+  if (!isInMap(md_.camera_pos_)) {
+    ROS_WARN_THROTTLE(1.0, "[SDFMap] Camera pos (%.2f,%.2f,%.2f) outside map bounds, skipping",
+      md_.camera_pos_(0), md_.camera_pos_(1), md_.camera_pos_(2));
+    return;
+  }
+
+  // DEBUG: 確認回調被觸發
+  ROS_INFO_THROTTLE(2.0, "[SDFMap] depthIndepCallback triggered! img=%dx%d encoding=%s pos=(%.2f,%.2f,%.2f)",
+    img->width, img->height, img->encoding.c_str(),
+    md_.camera_pos_(0), md_.camera_pos_(1), md_.camera_pos_(2));
+
+  /* get depth image */
+  cv_bridge::CvImagePtr cv_ptr;
+  cv_ptr = cv_bridge::toCvCopy(img, img->encoding);
+  if (img->encoding == sensor_msgs::image_encodings::TYPE_32FC1) {
+    (cv_ptr->image).convertTo(cv_ptr->image, CV_16UC1, mp_.k_depth_scaling_factor_);
+  }
+  cv_ptr->image.copyTo(md_.depth_image_);
+
+  md_.occ_need_update_ = true;
 }
 
 // SDFMap
