@@ -288,7 +288,7 @@ Visualization Manager:
           Shaft Length: 1
           Shaft Radius: 0.0500000007
           Shape: Axes
-          Topic: /pcl_render_node/camera_pose
+          Topic: /ground_truth_to_tf/pose
           Unreliable: false
           Value: true
         - Angle Tolerance: 0.00999999978
@@ -514,7 +514,7 @@ Visualization Manager:
       Name: Tracking
     - Class: rviz/Image
       Enabled: true
-      Image Topic: /pcl_render_node/depth
+      Image Topic: /camera/depth/image_raw
       Max Value: 1
       Median window: 5
       Min Value: 0

@@ -11,15 +11,17 @@ from geometry_msgs.msg import TransformStamped
 class OdomToTF:
     def __init__(self):
         self.tf_broadcaster = tf2_ros.TransformBroadcaster()
-        self.odom_sub = rospy.Subscriber('/visual_slam/odom', Odometry, self.odom_callback)
-        rospy.loginfo("[OdomToTF] Started - broadcasting TF from /visual_slam/odom")
+        # Use remappable topic name instead of hardcoded path
+        odom_topic = rospy.get_param('~odom_topic', '/odom')
+        self.odom_sub = rospy.Subscriber(odom_topic, Odometry, self.odom_callback)
+        rospy.loginfo("[OdomToTF] Started - broadcasting TF from %s", odom_topic)
 
     def odom_callback(self, msg):
         """Broadcast TF transform from odometry"""
         t = TransformStamped()
         t.header.stamp = rospy.Time.now()
         t.header.frame_id = "world"
-        t.child_frame_id = "body"
+        t.child_frame_id = "base_link"  # Match URDF base link name
 
         t.transform.translation.x = msg.pose.pose.position.x
         t.transform.translation.y = msg.pose.pose.position.y
