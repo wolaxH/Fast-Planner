@@ -55,6 +55,7 @@ Fast startup without Gazebo, using random obstacle maps.
 | [SO3_SETUP.md](SO3_SETUP.md) | Simulation systems guide |
 | [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) | Code organization |
 | [PROJECT_STRUCTURE_zh_TW.md](PROJECT_STRUCTURE_zh_TW.md) | 專案結構（繁體中文） |
+| [INSTALL_zh_TW.md](INSTALL_zh_TW.md) | 安裝指南（繁體中文） |
 | [CLAUDE.md](CLAUDE.md) | Development guide |
 
 ---
