@@ -63,10 +63,10 @@
     <param name="sdf_map/local_update_range_x"  value="5.5" /> 
     <param name="sdf_map/local_update_range_y"  value="5.5" /> 
     <param name="sdf_map/local_update_range_z"  value="4.5" /> 
-    <param name="sdf_map/obstacles_inflation"     value="0.3" />  <!-- 適度膨脹 --> 
+    <param name="sdf_map/obstacles_inflation"     value="0.2" />  <!-- 減小膨脹允許從地面起飛 --> 
     <param name="sdf_map/local_bound_inflate"    value="0.0"/>
     <param name="sdf_map/local_map_margin" value="50"/>
-    <param name="sdf_map/ground_height"        value="-1.0"/>
+    <param name="sdf_map/ground_height"        value="-0.1"/>  <!-- 只忽略地面以下的點 -->
     <!-- camera parameter -->
     <param name="sdf_map/cx" value="$(arg cx)"/>
     <param name="sdf_map/cy" value="$(arg cy)"/>
@@ -105,7 +105,7 @@
     <param name="manager/max_jerk" value="4" type="double"/>
     <param name="manager/dynamic_environment" value="0" type="int"/>
     <param name="manager/local_segment_length" value="6.0" type="double"/>
-    <param name="manager/clearance_threshold" value="0.3" type="double"/>  <!-- 與膨脹一致 -->
+    <param name="manager/clearance_threshold" value="0.2" type="double"/>  <!-- 與膨脹一致 -->
     <param name="manager/control_points_distance" value="0.5" type="double"/>
 
     <param name="manager/use_geometric_path" value="false" type="bool"/>
@@ -123,7 +123,7 @@
     <param name="search/lambda_heu" value="5.0" type="double"/>
     <param name="search/resolution_astar" value="0.1" type="double"/>
     <param name="search/time_resolution" value="0.8" type="double"/>
-    <param name="search/margin" value="0.3" type="double"/>  <!-- 與膨脹一致 -->
+    <param name="search/margin" value="0.2" type="double"/>  <!-- 減小搜索邊距允許從較低處起飛 -->
     <param name="search/allocate_num" value="100000" type="int"/>
     <param name="search/check_num" value="5" type="int"/>
 
@@ -133,7 +133,7 @@
     <param name="optimization/lambda3" value="0.00001" type="double"/>
     <param name="optimization/lambda4" value="0.01" type="double"/>
     <param name="optimization/lambda7" value="100.0" type="double"/>
-    <param name="optimization/dist0" value="0.8" type="double"/>  <!-- 增加安全距離閾值 -->
+    <param name="optimization/dist0" value="0.5" type="double"/>  <!-- 安全距離閾值 -->
     <param name="optimization/max_vel" value="$(arg max_vel)" type="double"/>
     <param name="optimization/max_acc" value="$(arg max_acc)" type="double"/>
 
