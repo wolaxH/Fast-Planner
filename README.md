@@ -4,7 +4,7 @@
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 This repository includes two simulation options:
 
@@ -36,19 +36,19 @@ Fast startup without Gazebo, using random obstacle maps.
 
 ---
 
-## ✨ Features
+## Features
 
-- ✅ Autonomous obstacle avoidance
-- ✅ Dynamic replanning
-- ✅ Kinodynamic path searching
-- ✅ B-spline trajectory optimization
-- ✅ ESDF-based environment mapping
-- ✅ Hector Quadrotor + Gazebo integration
-- ✅ SO(3) geometric controller (lightweight sim)
+- Autonomous obstacle avoidance
+- Dynamic replanning
+- Kinodynamic path searching
+- B-spline trajectory optimization
+- ESDF-based environment mapping
+- Hector Quadrotor + Gazebo integration
+- SO(3) geometric controller (lightweight sim)
 
 ---
 
-## 📚 Documentation
+## Documentation
 
 | Document | Description |
 |----------|-------------|
@@ -56,11 +56,12 @@ Fast startup without Gazebo, using random obstacle maps.
 | [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) | Code organization |
 | [PROJECT_STRUCTURE_zh_TW.md](PROJECT_STRUCTURE_zh_TW.md) | 專案結構（繁體中文） |
 | [INSTALL_zh_TW.md](INSTALL_zh_TW.md) | 安裝指南（繁體中文） |
+| [PROJECT_REPORT.md](PROJECT_REPORT.md) | 專案報告（繁體中文） |
 | [CLAUDE.md](CLAUDE.md) | Development guide |
 
 ---
 
-## 🛠️ Installation
+## Installation
 
 Tested on Ubuntu 18.04 (ROS Melodic) and 20.04 (ROS Noetic).
 
@@ -92,7 +93,7 @@ catkin_make
 
 ---
 
-## 📖 Algorithms
+## Algorithms
 
 The project contains these planning algorithms:
 
@@ -114,7 +115,7 @@ fast_planner/
 
 ---
 
-## 📄 Papers
+## Papers
 
 Please cite our papers if you use this project:
 
@@ -124,7 +125,7 @@ Please cite our papers if you use this project:
 
 ---
 
-## 🔗 Related Projects
+## Related Projects
 
 - [ego-planner](https://github.com/ZJU-FAST-Lab/ego-planner) - Extended for multi-agent
 - [FUEL](https://github.com/HKUST-Aerial-Robotics/FUEL) - Fast autonomous exploration
@@ -132,13 +133,13 @@ Please cite our papers if you use this project:
 
 ---
 
-## 👥 Authors
+## Authors
 
 [Boyu Zhou](http://sysu-star.com), [Fei Gao](http://zju-fast.com/fei-gao/), and [Shaojie Shen](http://uav.ust.hk/group/) from [HKUST Aerial Robotics Group](http://uav.ust.hk/).
 
 ---
 
-## 📜 License
+## License
 
 GPLv3 - See [LICENSE](http://www.gnu.org/licenses/) for details.
 

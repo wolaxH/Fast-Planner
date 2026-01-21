@@ -2,7 +2,7 @@
 
 本文件說明 Fast-Planner 程式碼庫與 Hector Quadrotor + Gazebo 整合後的組織架構。
 
-## 📁 根目錄
+## 根目錄
 
 ```
 Fast-Planner/
@@ -10,6 +10,8 @@ Fast-Planner/
 ├── CLAUDE.md                    # AI 助手開發指南
 ├── PROJECT_STRUCTURE.md         # 專案結構（英文）
 ├── PROJECT_STRUCTURE_zh_TW.md   # 專案結構（繁體中文）
+├── PROJECT_REPORT.md            # 專案報告
+├── INSTALL_zh_TW.md             # 安裝指南（繁體中文）
 ├── SO3_SETUP.md                 # 模擬系統指南
 ├── .gitignore                   # Git 忽略規則
 ├── fast_planner/                # Fast-Planner 核心模組
@@ -18,7 +20,7 @@ Fast-Planner/
 └── src/                         # ROS 工作空間來源連結
 ```
 
-## 🎯 核心模組
+## 核心模組
 
 ### fast_planner/
 Fast-Planner 主要演算法與規劃系統。
@@ -73,7 +75,7 @@ uav_simulator/
     └── waypoint_generator/    # 將 RViz 目標轉換為航點
 ```
 
-## 🚀 啟動系統
+## 啟動系統
 
 ### 選項 1：Hector Quadrotor + Gazebo（推薦）
 
@@ -105,7 +107,7 @@ roslaunch plan_manage kino_replan.launch
 - SO(3) 幾何控制器
 - 點雲視覺化
 
-## ⚙️ 設定檔案
+## 設定檔案
 
 | 檔案 | 用途 |
 |------|------|
@@ -124,7 +126,7 @@ roslaunch plan_manage kino_replan.launch
 | `optimization/lambda2` | 30.0 | 距離代價權重 |
 | `manager/max_vel` | 1.0 | 最大速度（m/s） |
 
-## 📊 資料流程（Hector 系統）
+## 資料流程（Hector 系統）
 
 ```
 Gazebo 世界（障礙物）
@@ -151,7 +153,7 @@ Gazebo 世界（障礙物）
 - `/planning/bspline` - 規劃軌跡
 - `/sdf_map/occupancy` - ESDF 佔據地圖
 
-## 🛠️ 編譯系統
+## 編譯系統
 
 ```bash
 # 先編譯 Hector 工作空間
@@ -166,14 +168,14 @@ catkin_make
 catkin_make --pkg plan_manage
 ```
 
-## 🔧 Hector 整合關鍵元件
+## Hector 整合關鍵元件
 
 1. **`hector_cmd_bridge.cpp`** - 將 Fast-Planner 位置指令轉換為 Hector 速度指令
 2. **`pose_type=3`（DEPTH_ODOM_INDEP）** - 深度/里程計獨立訂閱，避免時間戳同步問題
 3. **相機座標系轉換** - 將 Kinect 光學座標系轉換為世界座標系
 4. **地圖邊界檢查** - 防止無人機飛出地圖邊界時崩潰
 
-## 🎮 使用流程
+## 使用流程
 
 1. 啟動系統：`roslaunch plan_manage hector_fast_planner.launch`
 2. 等待 Gazebo 和 RViz 初始化
@@ -181,7 +183,7 @@ catkin_make --pkg plan_manage
 4. 點擊目標位置（保持 z ≈ 1.0m）
 5. 觀看自主避障飛行！
 
-## 📝 開發筆記
+## 開發筆記
 
 - **規劃演算法**：Kinodynamic A*（前端）+ B-spline 優化（後端）
 - **控制器**：透過 `/cmd_vel` 的 Hector 速度控制
@@ -189,7 +191,7 @@ catkin_make --pkg plan_manage
 - **模擬**：Gazebo + Hector Quadrotor 物理模擬
 - **座標系 ID**：`world`（全域）、`base_link`（四旋翼）
 
-## 🔗 外部相依套件
+## 外部相依套件
 
 - ROS Noetic
 - Gazebo 11
@@ -199,4 +201,4 @@ catkin_make --pkg plan_manage
 - Armadillo
 - Hector Quadrotor 套件
 
-安裝說明請參閱 `CLAUDE.md`。
+安裝說明請參閱 [INSTALL_zh_TW.md](INSTALL_zh_TW.md)。

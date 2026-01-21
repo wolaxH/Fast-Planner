@@ -2,13 +2,17 @@
 
 This document describes the organization of the Fast-Planner codebase with Hector Quadrotor + Gazebo integration.
 
-## 📁 Root Directory
+## Root Directory
 
 ```
 Fast-Planner/
 ├── README.md              # Main project documentation
 ├── CLAUDE.md              # AI assistant development guide
-├── PROJECT_STRUCTURE.md   # This file
+├── PROJECT_STRUCTURE.md   # This file (English)
+├── PROJECT_STRUCTURE_zh_TW.md  # Project structure (Traditional Chinese)
+├── PROJECT_REPORT.md      # Project report (Traditional Chinese)
+├── INSTALL_zh_TW.md       # Installation guide (Traditional Chinese)
+├── SO3_SETUP.md           # Simulation systems guide
 ├── .gitignore             # Git ignore rules
 ├── fast_planner/          # Core Fast-Planner modules
 ├── uav_simulator/         # UAV simulation components (SO(3) system)
@@ -16,7 +20,7 @@ Fast-Planner/
 └── src/                   # ROS workspace source link
 ```
 
-## 🎯 Core Modules
+## Core Modules
 
 ### fast_planner/
 Main Fast-Planner algorithms and planning system.
@@ -71,7 +75,7 @@ uav_simulator/
     └── waypoint_generator/    # Converts RViz goals to waypoints
 ```
 
-## 🚀 Launch Systems
+## Launch Systems
 
 ### Option 1: Hector Quadrotor + Gazebo (Recommended)
 
@@ -103,7 +107,7 @@ roslaunch plan_manage kino_replan.launch
 - SO(3) geometric controller
 - Point cloud visualization
 
-## ⚙️ Configuration Files
+## Configuration Files
 
 | File | Purpose |
 |------|---------|
@@ -122,7 +126,7 @@ roslaunch plan_manage kino_replan.launch
 | `optimization/lambda2` | 30.0 | Distance cost weight |
 | `manager/max_vel` | 1.0 | Maximum velocity (m/s) |
 
-## 📊 Data Flow (Hector System)
+## Data Flow (Hector System)
 
 ```
 Gazebo World (Obstacles)
@@ -149,7 +153,7 @@ Gazebo World (Obstacles)
 - `/planning/bspline` - Planned trajectory
 - `/sdf_map/occupancy` - ESDF occupancy map
 
-## 🛠️ Build System
+## Build System
 
 ```bash
 # Build Hector workspace first
@@ -164,14 +168,14 @@ catkin_make
 catkin_make --pkg plan_manage
 ```
 
-## 🔧 Key Components for Hector Integration
+## Key Components for Hector Integration
 
 1. **`hector_cmd_bridge.cpp`** - Converts Fast-Planner position commands to Hector velocity commands
 2. **`pose_type=3` (DEPTH_ODOM_INDEP)** - Independent depth/odom subscribers to avoid timestamp sync issues
 3. **Camera frame transform** - Converts Kinect optical frame to world frame
 4. **Map boundary check** - Prevents crashes when UAV flies outside map bounds
 
-## 🎮 Usage Workflow
+## Usage Workflow
 
 1. Launch system: `roslaunch plan_manage hector_fast_planner.launch`
 2. Wait for Gazebo and RViz to initialize
@@ -179,7 +183,7 @@ catkin_make --pkg plan_manage
 4. Click target position (keep z ≈ 1.0m)
 5. Watch autonomous obstacle avoidance!
 
-## 📝 Development Notes
+## Development Notes
 
 - **Planning Algorithm**: Kinodynamic A* (front-end) + B-spline optimization (back-end)
 - **Controller**: Hector velocity control via `/cmd_vel`
@@ -187,7 +191,7 @@ catkin_make --pkg plan_manage
 - **Simulation**: Gazebo with Hector Quadrotor physics
 - **Frame IDs**: `world` (global), `base_link` (quadrotor)
 
-## 🔗 External Dependencies
+## External Dependencies
 
 - ROS Noetic
 - Gazebo 11
@@ -197,4 +201,4 @@ catkin_make --pkg plan_manage
 - Armadillo
 - Hector Quadrotor packages
 
-See `CLAUDE.md` for installation instructions.
+See [INSTALL_zh_TW.md](INSTALL_zh_TW.md) for installation instructions.

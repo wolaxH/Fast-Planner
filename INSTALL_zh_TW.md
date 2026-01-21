@@ -4,14 +4,14 @@
 
 ---
 
-## 📋 系統需求
+## 系統需求
 
 ### 作業系統
 
 | 系統 | ROS 版本 | 狀態 |
 |------|----------|------|
-| Ubuntu 20.04 | ROS Noetic | ✅ 推薦 |
-| Ubuntu 18.04 | ROS Melodic | ✅ 支援 |
+| Ubuntu 20.04 | ROS Noetic | 推薦 |
+| Ubuntu 18.04 | ROS Melodic | 支援 |
 
 ### 硬體需求
 
@@ -24,7 +24,7 @@
 
 ---
 
-## 🔧 相依套件
+## 相依套件
 
 ### 核心相依
 
@@ -46,7 +46,7 @@ visualization_msgs, tf, cv_bridge, message_generation, dynamic_reconfigure
 
 ---
 
-## 📥 安裝步驟
+## 安裝步驟
 
 ### 步驟 1：安裝 ROS
 
@@ -205,7 +205,7 @@ catkin_make
 
 ---
 
-## ✅ 驗證安裝
+## 驗證安裝
 
 ### 測試 1：SO(3) 輕量模擬
 
@@ -238,7 +238,7 @@ roslaunch plan_manage hector_fast_planner.launch
 
 ---
 
-## 🔧 選配：GPU 深度渲染
+## 選配：GPU 深度渲染
 
 如需更真實的深度相機模擬，可啟用 CUDA 加速。
 
@@ -271,7 +271,7 @@ catkin_make
 
 ---
 
-## ❗ 常見問題
+## 常見問題
 
 ### 問題 1：NLopt 找不到
 
@@ -346,7 +346,7 @@ roslaunch plan_manage rviz.launch
 
 ---
 
-## 📁 目錄結構
+## 目錄結構
 
 安裝完成後的目錄結構：
 
@@ -366,17 +366,18 @@ roslaunch plan_manage rviz.launch
 
 ---
 
-## 🚀 下一步
+## 下一步
 
 安裝完成後，請參閱：
 
 - [README.md](README.md) - 快速啟動指南
 - [SO3_SETUP.md](SO3_SETUP.md) - 模擬系統詳細說明
 - [PROJECT_STRUCTURE_zh_TW.md](PROJECT_STRUCTURE_zh_TW.md) - 專案結構說明
+- [PROJECT_REPORT.md](PROJECT_REPORT.md) - 專案報告
 
 ---
 
-## 📞 支援
+## 支援
 
 如遇問題：
 1. 先查閱本文件的「常見問題」章節

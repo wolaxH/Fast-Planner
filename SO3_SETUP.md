@@ -4,20 +4,20 @@
 
 ---
 
-## 🎯 系統比較
+## 系統比較
 
 | 特性 | Hector + Gazebo | SO(3) 輕量模擬 |
 |------|-----------------|---------------|
-| 視覺效果 | ✅ 完整 3D 渲染 | ⚠️ 點雲視覺化 |
-| 啟動速度 | ⚠️ 較慢 (Gazebo) | ✅ 快速 |
-| 物理模擬 | ✅ Gazebo 物理引擎 | ✅ 簡化動力學 |
-| 深度相機 | ✅ Kinect 模擬 | ✅ 點雲生成 |
-| 避障效果 | ✅ 優秀 | ✅ 優秀 |
+| 視覺效果 | 完整 3D 渲染 | 點雲視覺化 |
+| 啟動速度 | 較慢 (Gazebo) | 快速 |
+| 物理模擬 | Gazebo 物理引擎 | 簡化動力學 |
+| 深度相機 | Kinect 模擬 | 點雲生成 |
+| 避障效果 | 優秀 | 優秀 |
 | 適用場景 | 展示、測試 | 快速開發、除錯 |
 
 ---
 
-## 🚁 Option 1: Hector Quadrotor + Gazebo（推薦）
+## Option 1: Hector Quadrotor + Gazebo（推薦）
 
 ### 啟動方式
 
@@ -81,7 +81,7 @@ Fast-Planner (狀態反饋)
 
 ---
 
-## 🎮 Option 2: SO(3) 輕量模擬
+## Option 2: SO(3) 輕量模擬
 
 ### 啟動方式
 
@@ -118,7 +118,7 @@ Fast-Planner (狀態反饋)
 
 ---
 
-## 🔧 調整建議
+## 調整建議
 
 ### 如果避障效果不佳
 
@@ -150,7 +150,7 @@ Fast-Planner (狀態反饋)
 
 ---
 
-## 🐛 常見問題
+## 常見問題
 
 ### 問：無人機不動
 **答**：檢查軌跡是否發布
@@ -178,7 +178,7 @@ rostopic hz /camera/depth/image_raw
 
 ---
 
-## 📊 ROS Topics
+## ROS Topics
 
 ### Hector 系統
 
@@ -193,7 +193,7 @@ rostopic hz /camera/depth/image_raw
 
 ---
 
-## 📚 參考資料
+## 參考資料
 
 - [Fast-Planner 論文](https://arxiv.org/abs/1904.05293)
 - [SO(3) 控制論文](https://ieeexplore.ieee.org/document/5717652)
