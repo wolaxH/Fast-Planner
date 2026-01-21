@@ -22,7 +22,7 @@ source ~/Fast-Planner/devel/setup.bash --extend
 roslaunch plan_manage hector_fast_planner.launch
 ```
 
-### Option 2: SO(3) Lightweight Simulation
+### Option 2: SO(3) Lightweight Simulation (is broken)
 
 Fast startup without Gazebo, using random obstacle maps.
 
